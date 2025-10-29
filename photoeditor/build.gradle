@@ -1,5 +1,7 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
 
 android {
     namespace 'ja.burhanrashid52.photoeditor'
@@ -54,18 +56,24 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
 
-    // Mockito
     testImplementation 'org.mockito:mockito-core:5.1.1'
     androidTestImplementation 'org.mockito:mockito-android:5.1.1'
 }
 
-ext {
-    PUBLISH_GROUP_ID = 'com.burhanrashid52'
-    PUBLISH_VERSION = '3.0.2'
-    PUBLISH_ARTIFACT_ID = 'photoeditor'
+def isCi = System.getenv("JITPACK") != null || System.getenv("CI") != null
+def pubGroup = project.findProperty("group") ?: "com.github.lmorit.PhotoEditor"
+def pubVersion = project.findProperty("version") ?: "a0034c1"
+
+publishing {
+    publications {
+        create("release", MavenPublication) {
+            groupId = pubGroup
+            artifactId = "photoeditor"
+            version = pubVersion
+            afterEvaluate { from components.release }
+        }
+    }
 }
 
-apply from: "${rootProject.projectDir}/scripts/publish-mavencentral.gradle"
-repositories {
-    mavenCentral()
-}
+signing { required !isCi }
+tasks.withType(Sign).configureEach { onlyIf { !isCi } }
