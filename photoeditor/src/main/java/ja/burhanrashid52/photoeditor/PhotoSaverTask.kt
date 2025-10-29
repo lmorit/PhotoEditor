@@ -2,7 +2,7 @@ package ja.burhanrashid52.photoeditor
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.view.View
+import android.graphics.drawable.BitmapDrawable
 import ja.burhanrashid52.photoeditor.BitmapUtil.removeTransparency
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -77,10 +77,34 @@ internal class PhotoSaverTask(
         }
     }
 
-    private fun captureView(view: View): Bitmap {
-        val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+    private fun captureView(view: PhotoEditorView): Bitmap {
+        val drawable = view.source.drawable
+        val fallbackWidth = view.width.takeIf { it > 0 }
+        val fallbackHeight = view.height.takeIf { it > 0 }
+
+        val sourceWidth = when (drawable) {
+            is BitmapDrawable -> drawable.bitmap.width
+            else -> drawable?.intrinsicWidth ?: fallbackWidth
+        } ?: fallbackWidth ?: 1
+
+        val sourceHeight = when (drawable) {
+            is BitmapDrawable -> drawable.bitmap.height
+            else -> drawable?.intrinsicHeight ?: fallbackHeight
+        } ?: fallbackHeight ?: 1
+
+        val bitmap = Bitmap.createBitmap(sourceWidth, sourceHeight, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
+
+        val displayedWidth = fallbackWidth ?: sourceWidth
+        val displayedHeight = fallbackHeight ?: sourceHeight
+
+        val scaleX = if (displayedWidth == 0) 1f else sourceWidth.toFloat() / displayedWidth
+        val scaleY = if (displayedHeight == 0) 1f else sourceHeight.toFloat() / displayedHeight
+
+        canvas.save()
+        canvas.scale(scaleX, scaleY)
         view.draw(canvas)
+        canvas.restore()
         return bitmap
     }
 
